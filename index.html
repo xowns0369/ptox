@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-4P4FKQ6G9J"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-4P4FKQ6G9J');
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>국시과방 - 과락방지 퀴즈</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+   <style>
+    :root {
+        --bg-color: #f1f5f9;
+        --card-color: #ffffff;
+        --primary-color: #2563eb;
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --color-o: #10b981;
+        --color-x: #f43f5e;
+        --color-bookmark: #fbbf24;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background-color: var(--bg-color);
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        height: 100dvh;
+        color: var(--text-main);
+        overflow: hidden;
+        overscroll-behavior: none;
+    }
+
+    .phone-container {
+        width: 360px;
+        height: 640px;
+        background-color: var(--card-color);
+        border-radius: 24px;
+        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        position: relative;
+    }
+
+    /* 📱 스마트폰 전체 화면 자동 전환 */
+    @media (max-width: 480px) {
+        body {
+            align-items: stretch;
+        }
+        .phone-container {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            border-radius: 0;
+            box-shadow: none;
+        }
+    }
+
+    /* 상단 헤더 */
+    .header {
+        padding: calc(18px + env(safe-area-inset-top)) 20px 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: var(--card-color);
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+    .exit-btn { cursor: pointer; display: flex; align-items: center; gap: 4px; }
+    .exit-btn:hover { color: var(--text-main); }
+
+    /* 타이머 바 */
+    .timer-bar-container { width: 100%; height: 4px; background-color: #e2e8f0; }
+    .timer-bar { width: 100%; height: 100%; background-color: var(--primary-color); transition: width 0.1s linear; }
+
+    /* 퀴즈 메인 콘텐츠 스크롤 영역 */
+    .quiz-main-content {
+        flex: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        touch-action: pan-y;
+        -webkit-overflow-scrolling: touch;
+        /* 🚨 [수정] 메인 문제 및 OX/5지선다 버튼이 하단 광고판 위로 스크롤되도록 여백 확보 */
+        padding-bottom: calc(70px + env(safe-area-inset-bottom));
+        box-sizing: border-box;
+    }
+
+    /* 문제 영역 */
+    .question-area { flex: 1; padding: 20px 24px 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+    .category { font-size: 13px; color: var(--primary-color); background-color: #eff6ff; padding: 6px 12px; border-radius: 20px; font-weight: 700; margin-bottom: 20px; letter-spacing: -0.5px; flex-shrink: 0; }
+    .question-text { font-size: 21px; font-weight: 700; line-height: 1.6; text-align: center; word-break: keep-all; color: var(--text-main); }
+
+    /* 버튼 영역 */
+    .btn-container {
+        display: flex;
+        gap: 16px;
+        padding: 24px;
+        background-color: var(--card-color);
+        margin-bottom: 0;
+        flex-shrink: 0;
+    }
+    .ox-btn { flex: 1; height: 84px; font-size: 36px; font-weight: 800; border: none; border-radius: 20px; cursor: pointer; color: white; transition: all 0.2s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    .ox-btn:active { transform: scale(0.96); opacity: 0.9; }
+    .btn-o { background-color: var(--color-o); box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2); }
+    .btn-x { background-color: var(--color-x); box-shadow: 0 10px 15px -3px rgba(244, 63, 94, 0.2); }
+
+    /* 전 화면 하단 고정 광고 배너 영역 */
+    .ad-zone {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: calc(50px + env(safe-area-inset-bottom));
+        background-color: #ffffff;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 11px;
+        color: var(--text-muted);
+        letter-spacing: 0.5px;
+        z-index: 700;
+        padding-bottom: env(safe-area-inset-bottom);
+        box-sizing: border-box;
+    }
+    .ad-banner-mock {
+        width: 320px;
+        height: 50px;
+        background-color: #ffffff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-weight: bold;
+        color: #ffffff;
+        border: 1px dashed #ffffff;
+        box-sizing: border-box;
+    }
+
+    /* 공통 오버레이 스타일 (시작 화면 등) */
+    .overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: calc(100% - (50px + env(safe-area-inset-bottom)));
+        background: var(--card-color);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10;
+        padding: calc(24px + env(safe-area-inset-top)) 24px 24px;
+        box-sizing: border-box;
+    }
+    .start-title { font-size: 24px; font-weight: 800; margin-bottom: 8px; color: var(--text-main); text-align: center; }
+    .start-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; text-align: center; }
+
+    /* 메인화면 디자인 상자 */
+    .history-card { background-color: #f8fafc; padding: 14px; border-radius: 16px; width: 100%; margin-bottom: 12px; border: 1px dashed #e2e8f0; box-sizing: border-box; max-height: 220px; display: flex; flex-direction: column; }
+    .history-title { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px; text-align: center; }
+    .history-scroll-zone {
+        flex: 1;
+        overflow-y: auto;
+        touch-action: pan-y;
+        -webkit-overflow-scrolling: touch;
+        padding-right: 2px;
+    }
+    .history-item { font-size: 13px; font-weight: 600; color: #334155; margin: 6px 0; display: flex; justify-content: space-between; align-items: center; background: white; padding: 8px 12px; border-radius: 10px; border: 1px solid #f1f5f9; }
+    .history-empty { font-size: 13px; color: var(--text-muted); font-style: italic; text-align: center; padding: 20px 0; }
+    .view-detail-btn { background: #f1f5f9; border: none; color: var(--primary-color); padding: 4px 8px; font-size: 14px; font-weight: 700; border-radius: 6px; cursor: pointer; }
+    .view-detail-btn:hover { background: #e2e8f0; }
+
+    /* 문제 복기 & 결과창 공통 디자인 (수정본) */
+.review-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    /* 🚨 [수정] 바깥 틀에서는 패딩을 제거하여 화면을 100% 꽉 채웁니다. */
+    padding-bottom: 0;
+    box-sizing: border-box;
+}
+
+.review-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-bottom: 16px; 
+    border-bottom: 2px solid #f1f5f9; 
+    padding-bottom: 10px; 
+    flex-shrink: 0; /* 헤더 고정 */
+}
+
+.review-list {
+    flex: 1;
+    overflow-y: auto;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 4px;
+    /* 💡 [수정] 스크롤 내부 박스 하단에 패딩을 주어 맨 아래 카드가 광고판 위로 깔끔하게 안착하도록 합니다. */
+    padding-bottom: calc(70px + env(safe-area-inset-bottom, 20px));
+    box-sizing: border-box;
+}
+
+.review-card { background: #f8fafc; border-radius: 14px; padding: 14px; margin-bottom: 12px; border-left: 4px solid #cbd5e1; position: relative; }
+.review-card.correct { border-left-color: var(--color-o); }
+.review-card.wrong { border-left-color: var(--color-x); }
+.review-card.bookmark-mode { border-left-color: var(--color-bookmark); }
+.review-meta { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 700; margin-bottom: 6px; }
+.review-q-text { font-size: 14px; font-weight: 700; line-height: 1.4; margin-bottom: 8px; word-break: keep-all; }
+.review-ans-info { font-size: 12px; font-weight: 600; margin-bottom: 6px; color: #475569; }
+.review-exp-box { font-size: 12px; line-height: 1.5; color: #64748b; background: white; padding: 8px; border-radius: 8px; border: 1px solid #edf2f7; word-break: keep-all; }
+    .review-keyword-tag {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--primary-color);
+        background-color: #eff6ff;
+        padding: 4px 8px;
+        border-radius: 6px;
+        margin-bottom: 8px;
+        border: 1px solid #dbeafe;
+    }
+
+    /* 즐겨찾기 버튼 */
+    .bookmark-toggle-btn { background: #fff; border: 1px solid #e2e8f0; color: var(--text-muted); padding: 4px 8px; font-size: 11px; font-weight: 700; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s; }
+    .bookmark-toggle-btn.active { background: #fef3c7; border-color: var(--color-bookmark); color: #b45309; }
+
+    .primary-btn { background-color: var(--primary-color); color: white; border: none; padding: 14px 28px; font-size: 16px; font-weight: 700; border-radius: 16px; cursor: pointer; transition: all 0.2s; width: 100%; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3); }
+    .primary-btn:active { transform: scale(0.97); }
+
+    /* 로딩 화면 */
+    .loading-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #334155; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 50; color: white; }
+    .spinner { border: 4px solid rgba(255,255,255,0.2); border-top: 4px solid white; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    /* 최종 결과 화면 오버레이 */
+    .final-screen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: calc(100% - (50px + env(safe-area-inset-bottom)));
+        background: var(--card-color);
+        z-index: 40;
+        display: flex;
+        flex-direction: column;
+        padding: calc(24px + env(safe-area-inset-top)) 24px 24px;
+        box-sizing: border-box;
+    }
+    .final-score-title { font-size: 28px; font-weight: 800; text-align: center; margin: 10px 0 10px; color: var(--text-main); }
+    .final-pass-msg { font-size: 14px; text-align: center; margin-bottom: 15px; font-weight: 600; color: var(--primary-color); }
+
+    /* 종료 모달 레이어 */
+    .exit-modal {
+        position: absolute;
+        bottom: -100%;
+        left: 0;
+        width: 100%;
+        background: white;
+        border-radius: 28px 28px 0 0;
+        padding: 24px 24px 24px;
+        box-shadow: 0 -20px 25px -5px rgba(0,0,0,0.15);
+        z-index: 120;
+        transition: bottom 0.3s ease;
+        box-sizing: border-box;
+    }
+    .exit-modal.show {
+        bottom: calc(50px + env(safe-area-inset-bottom));
+    }
+
+    .modal-dim {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.4);
+        z-index: 110;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+    .modal-dim.show { opacity: 1; pointer-events: auto; }
+
+    .hidden { display: none !important; }
+
+    /* 5지선다 선택 버튼 */
+    .choice-btn {
+        width: 100%;
+        min-height: 52px;
+        padding: 12px 16px;
+        background-color: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-align: left;
+        transition: all 0.15s ease;
+        box-sizing: border-box;
+    }
+    .choice-btn:active {
+        transform: scale(0.98);
+        background-color: #e2e8f0;
+        border-color: #94a3b8;
+    }
+    .choice-num {
+        background-color: #e2e8f0;
+        color: #475569;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+    .choice-txt {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-main);
+        line-height: 1.4;
+        word-break: keep-all;
+    }
+
+    /* 책갈피 형태의 개념서 버튼 */
+    .open-concepts-btn {
+        position: absolute;
+        top: calc(12px + env(safe-area-inset-top, 20px)) !important;
+        left: 0 !important;
+        background: linear-gradient(135deg, #059669, #10b981);
+        color: white;
+        border: none;
+        padding: 7px 13px 7px 11px;
+        border-radius: 0 17px 17px 0;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 2px 4px 10px rgba(5, 150, 105, 0.25);
+        z-index: 30 !important;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.2s ease;
+    }
+    .open-concepts-btn:hover {
+        padding-left: 14px;
+        background: linear-gradient(135deg, #047857, #059669);
+    }
+
+    /* 개념서 좌측 슬라이드 사이드바 */
+    .concepts-drawer {
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 82%;
+        height: 100%;
+        background: #ffffff;
+        z-index: 1001;
+        transition: left 0.3s ease-in-out;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 4px 0 15px rgba(0,0,0,0.15);
+        padding-top: env(safe-area-inset-top, 20px) !important;
+    }
+    .concepts-drawer.open { left: 0; }
+    .drawer-header {
+        padding: 20px;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: calc(12px + env(safe-area-inset-top, 0px));
+    }
+    .drawer-close-btn { background: none; border: none; font-size: 20px; font-weight: 700; cursor: pointer; color: #64748b; }
+    
+    .drawer-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 15px;
+        /* 🚨 [수정] 사이드바 맨 하단 (1교시/2교시 단원 메뉴) 버튼들이 광고에 안 걸치도록 하단 여백 추가 */
+        padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    .period-badge { background: #3b82f6; color: white; font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 6px; display: inline-block; margin-bottom: 10px; }
+    .accordion-item { border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
+    .accordion-header { width: 100%; padding: 12px 14px; background: #fff; border: none; text-align: left; font-size: 13px; font-weight: 700; color: #1e293b; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+    .accordion-header .arrow { font-size: 10px; color: #94a3b8; transition: transform 0.2s; }
+    .accordion-item.active .accordion-header .arrow { transform: rotate(180deg); }
+    .accordion-content { display: none; background: #f8fafc; border-top: 1px solid #f1f5f9; }
+    .accordion-item.active .accordion-content { display: block; }
+    .chapter-item { padding: 10px 16px; font-size: 12px; color: #475569; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
+    .chapter-item:last-child { border-bottom: none; }
+    .chapter-item:hover { background: #e2e8f0; color: #0f172a; font-weight: 600; }
+
+    /* 개념서 본문 내 카드 디테일 */
+    .concept-body { padding: 15px 5px 30px 5px; line-height: 1.7; color: #334155; font-size: 14px; }
+    .concept-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    .concept-card h3 { font-size: 15px; color: #1e293b; margin-top: 0; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid #3b82f6; }
+    .concept-card table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 12px; }
+    .concept-card th, .concept-card td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; }
+    .concept-card th { background: #f1f5f9; font-weight: 700; }
+
+    /* ==========================================
+   📚 개념서 독서 화면 (헤더 상단 고정 + 본문만 스크롤)
+   ========================================== */
+        #concept-view {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff;
+            z-index: 600;
+            display: flex;                /* Flexbox 레이아웃 적용 */
+            flex-direction: column;
+            padding: 0 !important;        /* 내부 스크롤 완충을 위해 전체 패딩 해제 */
+            box-sizing: border-box;
+        }
+
+        #concept-view.hidden { display: none !important; }
+
+        /* 📌 1. 상단 고정 헤더 (스크롤 시 전혀 움직이지 않음) */
+        #concept-view .review-header {
+            flex-shrink: 0;               /* 스크롤시 높이 줄어듦 방지 */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: calc(16px + env(safe-area-inset-top, 20px)) 20px 15px 20px;
+            background-color: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            margin-bottom: 0;             /* 경계선 깔끔하게 정돈 */
+            z-index: 10;
+        }
+
+        /* 📜 2. 실제 본문 스크롤 영역 */
+        .concept-scroll-body {
+            flex: 1;
+            overflow-y: auto;             /* 본문 영역 내부에서만 스크롤 */
+            padding: 15px 20px calc(70px + env(safe-area-inset-bottom)) 20px; /* 하단 광고판 가림 방지 여백 */
+            box-sizing: border-box;
+            touch-action: pan-y;
+            -webkit-overflow-scrolling: touch;
+        }
+
+    /* 네이티브 광고 컨테이너 기본 스타일 (수정본) */
+        .native-ad-wrapper {
+            width: 100%;
+            /* 💡 MEDIUM 사이즈 네이티브 광고가 들어갈 수 있는 최소 높이 확보 */
+            min-height: 160px; 
+            margin-bottom: 12px;
+            box-sizing: border-box;
+            /* 💡 로드 전 위치 확인용 (필요 없으시면 background 줄 삭제 가능) */
+            background-color: #f8fafc;
+            border-radius: 12px;
+        }
+    
+</style>
+</head>
+<body>
+
+<div class="phone-container">
+
+    <!-- 📖 개념서 보기 사이드바 딤 (배경 Overlay) -->
+    <div id="concepts-drawer-dim" class="modal-dim" onclick="closeConceptsDrawer()"></div>
+
+    <!-- 📖 개념서 보기 좌측 슬라이딩 사이드바 (Drawer) -->
+    <div id="concepts-drawer" class="concepts-drawer">
+        <div class="drawer-header">
+            <span style="font-size: 18px; font-weight: 800;">📖 국시 요약 개념서</span>
+            <button class="drawer-close-btn" onclick="closeConceptsDrawer()">✕</button>
+        </div>
+        
+        <div class="drawer-body">
+            <!-- 1교시 파트 -->
+            <div class="period-badge">1교시 과목</div>
+            
+            <div class="accordion-item">
+                <button class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>[1교시] 해부생리학</span>
+                    <span class="arrow">▼</span>
+                </button>
+                <div class="accordion-content">
+                    <div class="chapter-item" onclick="openConceptDetail('[1교시] 해부생리학', '01. 뼈대계통 (Skeletal System)')">01. 뼈대계통 (Skeletal System)</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[1교시] 해부생리학', '02. 근육계통 (Muscular System)')">02. 근육계통 (Muscular System)</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[1교시] 해부생리학', '03. 신경계통 (Nervous System)')">03. 신경계통 (Nervous System)</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[1교시] 해부생리학', '04. 순환계통 (Circulatory System)')">04. 순환계통 (Circulatory System)</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[1교시] 해부생리학', '05. 호흡계통 (Respiratory System)')">05. 호흡계통 (Respiratory System)</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[1교시] 해부생리학', '06. 소화/비뇨/내분비계통')">06. 소화/비뇨/내분비계통</div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <button class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>[1교시] 운동학 (Kinesiology)</span>
+                    <span class="arrow">▼</span>
+                </button>
+                <div class="accordion-content">
+                    <div class="chapter-item" onclick="openConceptDetail('[1교시] 운동학 (Kinesiology)', '01. 운동학 기초 & 역학 원리')">01. 운동학 기초 & 역학 원리</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[1교시] 운동학 (Kinesiology)', '02. 관절운동학 (Arthrokinematics)')">02. 관절운동학 (Arthrokinematics)</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[1교시] 운동학 (Kinesiology)', '03. 상지 운동학')">03. 상지 운동학</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[1교시] 운동학 (Kinesiology)', '04. 하지 운동학')">04. 하지 운동학</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[1교시] 운동학 (Kinesiology)', '05. 척추 & 자세 운동학')">05. 척추 & 자세 운동학</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[1교시] 운동학 (Kinesiology)', '06. 보행 분석 (Gait Analysis)')">06. 보행 분석 (Gait Analysis)</div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <button class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>[1교시] 물리치료학 개론 및 기초인자</span>
+                    <span class="arrow">▼</span>
+                </button>
+                <div class="accordion-content">
+                    <div class="chapter-item" onclick="openConceptDetail('[1교시] 물리치료학 개론 및 기초인자', '01. 물리치료학 개론')">01. 물리치료학 개론</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[1교시] 물리치료학 개론 및 기초인자', '02. 기초 전기물리학')">02. 기초 전기물리학</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[1교시] 물리치료학 개론 및 기초인자', '03. 기초 광선물리학')">03. 기초 광선물리학</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[1교시] 물리치료학 개론 및 기초인자', '04. 기초 수물리학')">04. 기초 수물리학</div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <button class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>[1교시] 물리치료 진단평가</span>
+                    <span class="arrow">▼</span>
+                </button>
+                <div class="accordion-content">
+                    <div class="chapter-item" onclick="openConceptDetail('[1교시] 물리치료 진단평가', '01. 근력검사 (MMT)')">01. 근력검사 (MMT)</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[1교시] 물리치료 진단평가', '02. 관절가동범위 (ROM)')">02. 관절가동범위 (ROM)</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[1교시] 물리치료 진단평가', '03. 근골격계 특수검사 (Special Tests)')">03. 근골격계 특수검사 (Special Tests)</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[1교시] 물리치료 진단평가', '04. 신경계 진단평가')">04. 신경계 진단평가</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[1교시] 물리치료 진단평가', '05. 발달 및 신경계 평가도구')">05. 발달 및 신경계 평가도구</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[1교시] 물리치료 진단평가', '06. 자세, 균형 및 심호흡 평가')">06. 자세, 균형 및 심호흡 평가</div>
+                </div>
+            </div>
+
+            <!-- 2교시 파트 -->
+            <div class="period-badge" style="margin-top: 15px; background: #8b5cf6;">2교시 과목</div>
+
+            <div class="accordion-item">
+                <button class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>[2교시] 근골격계 중재</span>
+                    <span class="arrow">▼</span>
+                </button>
+                <div class="accordion-content">
+                    <div class="chapter-item" onclick="openConceptDetail('[2교시] 근골격계 중재', '01. 척추 질환 중재')">01. 척추 질환 중재</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[2교시] 근골격계 중재', '02. 상지 질환 중재')">02. 상지 질환 중재</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[2교시] 근골격계 중재', '03. 하지 질환 중재')">03. 하지 질환 중재</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[2교시] 근골격계 중재', '04. 골절, 탈구 및 변형 중재')">04. 골절, 탈구 및 변형 중재</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[2교시] 근골격계 중재', '05. 절단 및 보조기/체위 중재')">05. 절단 및 보조기/체위 중재</div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <button class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>[2교시] 신경계 중재</span>
+                    <span class="arrow">▼</span>
+                </button>
+                <div class="accordion-content">
+                    <div class="chapter-item" onclick="openConceptDetail('[2교시] 신경계 중재', '01. 뇌혈관질환 (뇌졸중) 중재')">01. 뇌혈관질환 (뇌졸중) 중재</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[2교시] 신경계 중재', '02. 척수손상 (SCI) 중재')">02. 척수손상 (SCI) 중재</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[2교시] 신경계 중재', '03. 퇴행성/기타 신경질환 중재')">03. 퇴행성/기타 신경질환 중재</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[2교시] 신경계 중재', '04. 소아 물리치료 중재')">04. 소아 물리치료 중재</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[2교시] 신경계 중재', '05. 신경계 물리치료 유파/기법')">05. 신경계 물리치료 유파/기법</div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <button class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>[2교시] 물리적인자치료 중재</span>
+                    <span class="arrow">▼</span>
+                </button>
+                <div class="accordion-content">
+                    <div class="chapter-item" onclick="openConceptDetail('[2교시] 물리적인자치료 중재', '01. 전기치료 중재')">01. 전기치료 중재</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[2교시] 물리적인자치료 중재', '02. 광선치료 중재')">02. 광선치료 중재</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[2교시] 물리적인자치료 중재', '03. 수치료 & 체외충격파 중재')">03. 수치료 & 체외충격파 중재</div>
+                    <div class="chapter-item" onclick="openConceptDetail('[2교시] 물리적인자치료 중재', '04. 질환별 물리적인자 선택')">04. 질환별 물리적인자 선택</div>
+                </div>
+            </div>
+
+            
+        </div>
+    </div>
+
+    <!-- 1. 시작 화면 (Start Screen) -->
+    <div id="start-screen" class="overlay">
+        
+        <!-- 📖 개념서 버튼 -->
+        <button class="open-concepts-btn" onclick="openConceptsDrawer()" style="position: absolute; left: 0; top: 35px; z-index: 30;">
+            📖 개념서
+        </button>
+
+        <div id="start-view" style="width: 100%; display: flex; flex-direction: column; align-items: center; padding-bottom: 50px; box-sizing: border-box; position: relative;">
+            
+            <div class="start-title" style="margin-top: 15px;">국시과방!<br>국가고시 과락방지 퀴즈</div>
+            <div id="overlay-msg" class="start-sub">하루 5분, 과락 탈출 프로젝트</div>
+
+            <div class="history-card">
+                <div class="history-title">⏱️ 최근 도전 기록 (최대 5회)</div>
+                <div class="history-scroll-zone">
+                    <div id="history-list" class="history-empty">아직 도전한 기록이 없습니다.</div>
+                </div>
+            </div>
+
+            <!-- 보관함 컨트롤 바 (즐겨찾기 & 제외문제 나란히 배치) -->
+            <div style="display: flex; gap: 10px; width: 100%; margin-bottom: 15px;">
+                <button class="view-detail-btn" onclick="showBookmarks()" style="flex: 1; padding: 12px 8px; font-size: 13px; font-weight: 700;">
+                    ⭐ 내 즐겨찾기
+                </button>
+                <button class="view-detail-btn" onclick="showExcludedProblems()" style="flex: 1; padding: 12px 8px; font-size: 13px; font-weight: 700; color: #ef4444; border-color: #fca5a5;">
+                    🚫 제외문제 관리
+                </button>
+            </div>
+
+            <!-- 퀴즈 시작 버튼 영역 -->
+            <div style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+                <button id="start-ox-btn" class="primary-btn" onclick="loadQuiz('OX')" style="background-color: #3b82f6; box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2);">
+                    📝 퀴즈 시작 (O/X) 10문제
+                </button>
+                <button id="start-exam-btn" class="primary-btn" onclick="loadQuiz('FIVE_CHOICE')" style="background-color: #8b5cf6; box-shadow: 0 10px 15px -3px rgba(139, 92, 246, 0.2); margin-top: 0;">
+                    🎓 모의고사 시작 (5지선다) 5문제
+                </button>
+            </div>
+        </div>
+
+        <!-- 1-A. 기록 복기 뷰 -->
+        <div id="review-view" class="review-container hidden">
+            <div class="review-header">
+                <span id="review-title-date" style="font-weight: 800; font-size: 16px;">기록 복기</span>
+                <button class="view-detail-btn" onclick="closeReview()">처음으로</button>
+            </div>
+            <div id="review-list-box" class="review-list"></div>
+        </div>
+
+        <!-- 1-B. 제외문제(아는 문제) 목록 및 복원 뷰 -->
+        <div id="excluded-view" class="review-container hidden">
+            <div class="review-header">
+                <span id="excluded-title-count" style="font-weight: 800; font-size: 16px; color: #ef4444;">🚫 제외된 문제 목록 (0개)</span>
+                <button class="view-detail-btn" onclick="closeExcluded()">닫기</button>
+            </div>
+            <div id="excluded-list-box" class="review-list"></div>
+        </div>
+
+        <!-- 📖 1-C. 개념서 본문 독서 화면 -->
+    <div id="concept-view" class="review-container hidden">
+        <!-- 📌 상단 고정 헤더 영역 -->
+        <div class="review-header">
+            <div style="display: flex; flex-direction: column;">
+                <span id="concept-subject-title" style="font-size: 11px; color: #64748b; font-weight: 600;">[1교시] 해부생리학</span>
+                <span id="concept-chapter-title" style="font-size: 15px; color: #0f172a; font-weight: 800;">01. 뼈대계통 (Skeletal System)</span>
+            </div>
+            <button class="view-detail-btn" onclick="closeConceptDetail()" style="background: #e2e8f0; color: #3b82f6; border: none;">← 뒤로가기</button>
+        </div>
+        
+        <!-- 📜 본문만 스크롤되는 영역 -->
+        <div class="concept-scroll-body">
+            <div id="concept-content-body" class="concept-body">
+                <div style="text-align: center; padding: 40px; color: #94a3b8;">개념을 불러오는 중입니다...</div>
+            </div>
+        </div>
+    </div>
+
+    </div>
+
+    <!-- 2. 분석 중 로딩 화면 -->
+    <div id="loading-screen" class="loading-screen hidden">
+        <div class="spinner"></div>
+        <div style="font-size: 18px; font-weight: 700; margin-bottom: 8px;">결과를 분석 중입니다...</div>
+        <div style="font-size: 12px; color: rgba(255,255,255,0.6);">잠시 후 결과가 공개됩니다.</div>
+    </div>
+
+    <!-- 3. 최종 결과 화면 (Final Screen) -->
+    <div id="final-screen" class="final-screen hidden">
+        <div class="final-score-title" id="final-score-title">0점</div>
+        <div class="final-pass-msg" id="final-pass-msg">메시지</div>
+
+        <div id="final-list-box" class="review-list" style="margin-bottom: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;"></div>
+
+        <div style="display: flex; gap: 10px; flex-direction: column;">
+            <button class="primary-btn" onclick="shareApp()" style="background-color: #10b981; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2);">
+                🔗 친구에게 앱 공유하기
+            </button>
+            <button class="primary-btn" style="background: #e2e8f0; color: #475569; box-shadow: none;" onclick="goHome()">
+                🏠 처음으로
+            </button>
+        </div>
+    </div>
+
+    <!-- 4. 이탈 확인 모달 -->
+    <div id="modal-dim" class="modal-dim"></div>
+    <div id="exit-modal" class="exit-modal">
+        <div style="font-size: 22px; font-weight:800; margin-bottom: 8px; color: var(--color-x); text-align:center;">퀴즈를 종료할까요? ⚠️</div>
+        <div style="text-align: center; font-size: 14px; color: var(--text-muted); line-height: 1.5; margin-bottom: 24px;">
+            지금 나가하시면 현재까지 진행된<br>기록이 모두 사라집니다.
+        </div>
+        <div style="display: flex; gap: 12px; width: 100%;">
+            <button class="primary-btn" style="background: #e2e8f0; color: #475569; box-shadow: none;" onclick="closeExitModal()">계속 풀기</button>
+            <button class="primary-btn" style="background: var(--color-x); box-shadow: 0 10px 15px -3px rgba(244, 63, 94, 0.3);" onclick="confirmExit()">종료하기</button>
+        </div>
+    </div>
+
+    <!-- 5. 퀴즈 풀이 상단 헤더 -->
+    <div class="header">
+        <span class="exit-btn" onclick="exitQuiz()">✕ 나가기</span>
+        <span id="progress-text">1 / 10</span> 
+        <div style="width: 50px;"></div>
+    </div>
+
+    <!-- 타이머 바 -->
+    <div class="timer-bar-container">
+        <div id="timer-bar" class="timer-bar"></div>
+    </div>
+
+    <!-- 6. 퀴즈 본문 콘텐츠 -->
+    <div class="quiz-main-content">
+        <div class="question-area">
+            <div id="category-text" class="category">과목</div>
+            <div id="question-text" class="question-text">문제를 불러오는 중입니다.</div>
+        </div>
+
+        <div class="btn-container">
+            <div id="ox-options" class="options-group" style="display: flex; gap: 12px; width: 100%;">
+                <button class="ox-btn btn-o" onclick="submitAnswer('O')" style="flex: 1;">O</button>
+                <button class="ox-btn btn-x" onclick="submitAnswer('X')" style="flex: 1;">X</button>
+            </div>
+
+            <div id="five-options" class="options-group hidden" style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+                <button class="choice-btn" onclick="submitAnswer('1')"><span class="choice-num">1</span> <span class="choice-txt">보기 1번 내용</span></button>
+                <button class="choice-btn" onclick="submitAnswer('2')"><span class="choice-num">2</span> <span class="choice-txt">보기 2번 내용</span></button>
+                <button class="choice-btn" onclick="submitAnswer('3')"><span class="choice-num">3</span> <span class="choice-txt">보기 3번 내용</span></button>
+                <button class="choice-btn" onclick="submitAnswer('4')"><span class="choice-num">4</span> <span class="choice-txt">보기 4번 내용</span></button>
+                <button class="choice-btn" onclick="submitAnswer('5')"><span class="choice-num">5</span> <span class="choice-txt">보기 5번 내용</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 하단 광고 영역 -->
+    <div class="ad-zone">
+        <div class="ad-banner-mock"></div>
+    </div>
+</div>
+
+</body>
+
+<script>
+// ==========================================
+// 📢 [애드몹(AdMob) 설정 및 ID 구성]
+// ==========================================
+// 🚨 실제 출시(배포)용 AAB를 빌드할 때는 반드시 false로 변경해야 합니다!
+const IS_AD_TEST_MODE = false;
+
+// 1. 하단 배너 광고 ID
+const BANNER_AD_ID = IS_AD_TEST_MODE
+    ? 'ca-app-pub-3940256099942544/6300978111'  // 구글 공용 테스트 ID
+    : 'ca-app-pub-4359299133413391/1851996079'; // 실제 배너 ID
+
+// 2. 전면 광고 ID
+const INTERSTITIAL_AD_ID = IS_AD_TEST_MODE
+    ? 'ca-app-pub-3940256099942544/1033173712'  // 구글 공용 테스트 ID
+    : 'ca-app-pub-4359299133413391/7262592082'; // 실제 전면 광고 ID
+
+
+
+// ==========================================
+// 0. 기존 기본 변수 및 Supabase 설정
+// ==========================================
+const SUPABASE_URL = "https://jqrejkrzbtexnwkijbcu.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpxcmVqa3J6YnRleG53a2lqYmN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NjAxNTAsImV4cCI6MjA5NTUzNjE1MH0.ujOJI1yVf4EAaoJwvkKi_ZaikQ9i8iHHM259Fl79mFw";
+
+const mySupabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let questions = [];
+let currentIndex = 0;
+let score = 0;
+let timeLeft = 15;
+let timerInterval = null;
+let isAnswering = false;
+let currentMode = 'OX';
+
+
+// ==========================================
+// 🔌 애드몹 동작을 위한 핵심 기능 함수들
+// ==========================================
+
+// 1. 애드몹 SDK 초기화 및 하단 배너 실행
+async function initAdMob() {
+    if (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.AdMob) {
+        const { AdMob } = Capacitor.Plugins;
+        try {
+            await AdMob.initialize({});
+            console.log("AdMob SDK 초기화 완료");
+
+            // 앱 실행 시 하단 배너 연동
+            showAdMobBanner();
+        } catch (e) {
+            console.error("AdMob 초기화 중 에러 발생:", e);
+        }
+    } else {
+        console.log("일반 웹 브라우저 환경이므로 AdMob을 로드하지 않습니다.");
+    }
+}
+
+// 2. 하단 배너 광고 송출
+async function showAdMobBanner() {
+    if (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.AdMob) {
+        const { AdMob } = Capacitor.Plugins;
+        try {
+            await AdMob.showBanner({
+                adId: BANNER_AD_ID,
+                adSize: 'ADAPTIVE_BANNER',
+                position: 'BOTTOM_CENTER',
+                isTesting: IS_AD_TEST_MODE
+            });
+            console.log("배너 광고 송출 완료");
+        } catch (e) {
+            console.error("배너 광고 송출 에러:", e);
+        }
+    }
+}
+
+// 3. 전면 광고 미리 불러오기
+async function prepareInterstitial() {
+    if (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.AdMob) {
+        const { AdMob } = Capacitor.Plugins;
+        try {
+            await AdMob.prepareInterstitial({
+                adId: INTERSTITIAL_AD_ID,
+                isTesting: IS_AD_TEST_MODE
+            });
+            console.log("전면 광고 미리 로드 완료");
+        } catch (e) {
+            console.error("전면 광고 로드 실패:", e);
+        }
+    }
+}
+
+// 4. 미리 다운로드된 전면 광고 띄우기
+async function showInterstitial() {
+    if (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.AdMob) {
+        const { AdMob } = Capacitor.Plugins;
+        try {
+            await AdMob.showInterstitial();
+            console.log("전면 광고 화면 출력 완료");
+        } catch (e) {
+            console.error("전면 광고 출력 실패:", e);
+        }
+    }
+}
+
+
+// ==========================================
+// 3. 기존 화면 구성 및 퀴즈 동작
+// ==========================================
+window.onload = () => {
+    renderHistory();
+    initAdMob(); // 앱 실행 시 애드몹 초기화 및 배너 출력!
+};
+
+function renderHistory() {
+    const historyList = document.getElementById('history-list');
+    const savedData = JSON.parse(localStorage.getItem('pt_quiz_history_v2') || '[]');
+
+    if (savedData.length === 0) {
+        historyList.innerHTML = `<div class="history-empty">아직 도전한 기록이 없습니다.</div>`;
+        return;
+    }
+
+    let htmlContent = '';
+    savedData.forEach((item, index) => {
+        const modeBadge = item.mode === 'FIVE_CHOICE' ? '🎓 모의고사' : '📝 퀴즈';
+        const isPassed = item.mode === 'FIVE_CHOICE' ? item.score >= 60 : item.score >= 70;
+
+        htmlContent += `
+            <div class="history-item">
+                <div>
+                    <span style="font-size:11px; color:var(--text-muted); display:block;">${item.date} (${modeBadge})</span>
+                    <span style="font-weight:700; color: ${isPassed ? 'var(--color-o)' : 'var(--color-x)'};">${item.score}점</span>
+                </div>
+                <button class="view-detail-btn" onclick="showReview(${index})">문제 보기</button>
+            </div>`;
+    });
+    historyList.innerHTML = htmlContent;
+}
+
+function renderKeywordTag(keywordStr) {
+    if (!keywordStr || keywordStr.trim() === '') return '';
+    const cleanKeyword = keywordStr.split(',')[0].trim();
+    if (cleanKeyword === '') return '';
+
+    return `<div class="review-keyword-tag"># ${cleanKeyword}</div>`;
+}
+
+function renderOptionsText(q) {
+    const isFiveChoice = q.question_type === 'FIVE_CHOICE' || (q.options !== undefined && q.options !== null);
+    if (!isFiveChoice) return '';
+    try {
+        const opts = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
+        if (!Array.isArray(opts)) return '';
+        return `
+            <div style="margin: 8px 0; font-size: 13px; color: #475569; background: #f8fafc; padding: 8px; border-radius: 6px; text-align: left;">
+                ${opts.map((opt, idx) => {
+                    const isCorrectAnswer = String(q.answer) === String(idx + 1);
+                    return `<div style="${isCorrectAnswer ? 'font-weight: bold; color: var(--color-o);' : ''}">${idx + 1}. ${opt}</div>`;
+                }).join('')}
+            </div>`;
+    } catch(e) { return ''; }
+}
+
+function showReview(index) {
+    const savedData = JSON.parse(localStorage.getItem('pt_quiz_history_v2') || '[]');
+    const targetRound = savedData[index];
+    if(!targetRound) return;
+
+    document.getElementById('review-title-date').innerText = `${targetRound.date} 기록 복기`;
+    const listBox = document.getElementById('review-list-box');
+
+    let html = '';
+    targetRound.quizDetails.forEach((q, i) => {
+        const isCorrect = String(q.userChoice) === String(q.answer);
+        const statusClass = isCorrect ? 'correct' : 'wrong';
+        const statusText = isCorrect ? '정답 🎉' : '틀림 ❌';
+        const userChoiceText = q.userChoice === '시간초과' ? '⏰ 시간초과' : q.userChoice;
+        const keywordTagHtml = renderKeywordTag(q.keywords);
+        const optionsHtml = renderOptionsText(q);
+
+        html += `
+            <div class="review-card ${statusClass}">
+                <div class="review-meta">
+                    <span style="color:var(--primary-color)">Q${i+1}. [${q.category}]</span>
+                    <span style="color:${isCorrect ? 'var(--color-o)' : 'var(--color-x)'}">${statusText}</span>
+                </div>
+                <div class="review-q-text">${q.question}</div>
+                ${optionsHtml}
+                <div class="review-ans-info">내 선택: ${userChoiceText} | 정답: ${q.answer}</div>
+                <div class="review-exp-box">
+                    ${keywordTagHtml}
+                    <div><strong>해설:</strong> ${q.explanation || ''}</div>
+                </div>
+            </div>`;
+    });
+
+    listBox.innerHTML = html;
+    document.getElementById('start-view').classList.add('hidden');
+    document.getElementById('review-view').classList.remove('hidden');
+}
+
+
+// ⭐ 즐겨찾기 목록 출력 (전면 광고 노출 및 프리로드 추가)
+async function showBookmarks() {
+    // 💡 1. 전면 광고 출력 (애드몹 콘솔 1분 빈도 설정에 따라 처리됨)
+    if (typeof showInterstitial === 'function') {
+        await showInterstitial();
+    }
+
+    // 💡 2. 다음에 또 쓸 전면 광고 미리 불러오기 (백그라운드 캐싱)
+    if (typeof prepareInterstitial === 'function') {
+        prepareInterstitial();
+    }
+
+    // 💡 3. 즐겨찾기 데이터 불러오기 및 UI 렌더링
+    const bookmarks = JSON.parse(localStorage.getItem('pt_quiz_bookmarks') || '[]');
+    document.getElementById('review-title-date').innerText = `⭐ 내 즐겨찾기 (${bookmarks.length}개)`;
+
+    const listBox = document.getElementById('review-list-box');
+    if (bookmarks.length === 0) {
+        listBox.innerHTML = '<div class="history-empty">아직 즐겨찾기한 문제가 없습니다.</div>';
+    } else {
+        let html = '';
+
+        bookmarks.forEach((q, i) => {
+            const keywordTagHtml = renderKeywordTag(q.keywords);
+            const optionsHtml = renderOptionsText(q);
+            const isFiveChoice = q.options !== undefined && q.options !== null;
+
+            // 일반 문제 카드 HTML
+            html += `
+                <div class="review-card bookmark-mode">
+                    <div class="review-meta">
+                        <span style="color:var(--primary-color)">[${q.category}] (${isFiveChoice ? '5지선다' : 'OX'})</span>
+                        <button onclick="removeBookmarkFromMain(${i})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:12px; font-weight:bold;">✕ 삭제</button>
+                    </div>
+                    <div class="review-q-text">${q.question}</div>
+                    ${optionsHtml}
+                    <div class="review-ans-info">정답: <strong style="color:var(--color-o)">${q.answer}</strong></div>
+                    <div class="review-exp-box">
+                        ${keywordTagHtml}
+                        <div><strong>해설:</strong> ${q.explanation || ''}</div>
+                    </div>
+                </div>`;
+        });
+
+        listBox.innerHTML = html;
+    }
+
+    document.getElementById('start-view').classList.add('hidden');
+    document.getElementById('review-view').classList.remove('hidden');
+}
+
+
+function removeBookmarkFromMain(index) {
+    let bookmarks = JSON.parse(localStorage.getItem('pt_quiz_bookmarks') || '[]');
+    bookmarks.splice(index, 1);
+    localStorage.setItem('pt_quiz_bookmarks', JSON.stringify(bookmarks));
+    
+    // 💡 참고: 항목 삭제 시에는 전면 광고가 다시 뜨지 않도록 처리하고 싶다면 
+    // 아래에서 showBookmarks() 대신 UI만 바로 재갱신하게 처리되어 안전합니다.
+    showBookmarks();
+}
+
+
+// ==========================================
+// 🚫 아는 문제(제외문제) 관련 로직
+// ==========================================
+function showExcludedProblems() {
+    const excluded = JSON.parse(localStorage.getItem('pt_quiz_excluded') || '[]');
+    
+    const titleEl = document.getElementById('excluded-title-count');
+    if (titleEl) {
+        titleEl.innerText = `🚫 제외된 문제 목록 (${excluded.length}개)`;
+    }
+
+    const listBox = document.getElementById('excluded-list-box');
+
+    if (excluded.length === 0) {
+        listBox.innerHTML = '<div class="history-empty">제외(아는 문제)로 설정된 문제가 없습니다.</div>';
+    } else {
+        let html = '';
+        excluded.forEach((q, i) => {
+            const keywordTagHtml = renderKeywordTag(q.keywords);
+            const optionsHtml = renderOptionsText(q);
+            const isFiveChoice = q.options !== undefined && q.options !== null;
+
+            html += `
+                <div class="review-card" style="border-left: 4px solid #ef4444;">
+                    <div class="review-meta">
+                        <span style="color:#ef4444; font-weight:bold;">🚫 [제외됨] [${q.category}] (${isFiveChoice ? '5지선다' : 'OX'})</span>
+                        <!-- 💡 style="..." 추가 수정 완료 -->
+                        <button onclick="removeExcludedFromMain(${i})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:12px; font-weight:bold;">✕ 삭제</button>
+                    </div>
+                    <div class="review-q-text">${q.question}</div>
+                    ${optionsHtml}
+                    <div class="review-ans-info">정답: <strong style="color:var(--color-o)">${q.answer}</strong></div>
+                    <div class="review-exp-box">
+                        ${keywordTagHtml}
+                        <div><strong>해설:</strong> ${q.explanation || ''}</div>
+                    </div>
+                </div>`;
+        });
+        listBox.innerHTML = html;
+    }
+
+    document.getElementById('start-view').classList.add('hidden');
+    document.getElementById('excluded-view').classList.remove('hidden');
+}
+
+function removeExcludedFromMain(index) {
+    let excluded = JSON.parse(localStorage.getItem('pt_quiz_excluded') || '[]');
+    excluded.splice(index, 1);
+    localStorage.setItem('pt_quiz_excluded', JSON.stringify(excluded));
+    showExcludedProblems();
+}
+
+function closeExcluded() {
+    document.getElementById('excluded-view').classList.add('hidden');
+    document.getElementById('start-view').classList.remove('hidden');
+}
+
+function closeReview() {
+    document.getElementById('review-view').classList.add('hidden');
+    document.getElementById('start-view').classList.remove('hidden');
+}
+
+function exitQuiz() {
+    clearInterval(timerInterval);
+    document.getElementById('modal-dim').classList.add('show');
+    document.getElementById('exit-modal').classList.add('show');
+}
+
+function closeExitModal() {
+    document.getElementById('modal-dim').classList.remove('show');
+    document.getElementById('exit-modal').classList.remove('show');
+    startTimer();
+}
+
+function confirmExit() {
+    document.getElementById('modal-dim').classList.remove('show');
+    document.getElementById('exit-modal').classList.remove('show');
+    isAnswering = false;
+    goHome();
+}
+
+function goHome() {
+    document.getElementById('final-screen').classList.add('hidden');
+    document.getElementById('start-screen').classList.remove('hidden');
+    closeReview();
+    closeExcluded();
+}
+
+
+// ==========================================
+// 📝 퀴즈 로드 (제외문제 필터링)
+// ==========================================
+async function loadQuiz(mode) {
+    currentMode = mode;
+    const isExam = mode === 'FIVE_CHOICE';
+    const targetBtnId = isExam ? 'start-exam-btn' : 'start-ox-btn';
+    const originalText = isExam ? '🎓 모의고사 시작 (5지선다) 5문제' : '📝 퀴즈 시작 (O/X) 10문제';
+
+    document.getElementById(targetBtnId).innerText = "로딩 중...";
+    document.getElementById('start-ox-btn').disabled = true;
+    document.getElementById('start-exam-btn').disabled = true;
+
+    prepareInterstitial();
+
+    let rpcName = isExam ? 'get_random_exam_questions' : 'get_random_questions';
+    const { data, error } = await mySupabaseClient.rpc(rpcName);
+
+    document.getElementById('start-ox-btn').disabled = false;
+    document.getElementById('start-exam-btn').disabled = false;
+    document.getElementById(targetBtnId).innerText = originalText;
+
+    if (error) {
+        alert("데이터 로드 실패: " + error.message);
+        return;
+    }
+
+    const excludedList = JSON.parse(localStorage.getItem('pt_quiz_excluded') || '[]');
+    const filteredQuestions = data.filter(q => !excludedList.some(ex => ex.question === q.question));
+
+    if (filteredQuestions.length === 0 && data.length > 0) {
+        alert("모든 문제를 '아는 문제'로 제외하셨습니다! 모든 문제가 다시 포함되어 시작됩니다.");
+        questions = data;
+    } else {
+        questions = filteredQuestions;
+    }
+
+    currentIndex = 0;
+    score = 0;
+
+    document.getElementById('start-screen').classList.add('hidden');
+    showQuestion();
+}
+
+function showQuestion() {
+    isAnswering = false;
+    const currentQ = questions[currentIndex];
+
+    document.getElementById('progress-text').innerText = `${currentIndex + 1} / ${questions.length}`;
+    document.getElementById('category-text').innerText = currentQ.category;
+    document.getElementById('question-text').innerText = currentQ.question;
+
+    const isFiveChoice = currentQ.options !== undefined && currentQ.options !== null;
+
+    if (isFiveChoice) {
+        document.getElementById('ox-options').classList.add('hidden');
+        document.getElementById('five-options').classList.remove('hidden');
+
+        try {
+            const opts = typeof currentQ.options === 'string' ? JSON.parse(currentQ.options) : currentQ.options;
+            const optionButtons = document.querySelectorAll('#five-options .choice-txt');
+            opts.forEach((text, index) => {
+                if(optionButtons[index]) optionButtons[index].innerText = text;
+            });
+        } catch (e) {
+            console.error("보기를 읽어오는 데 실패했습니다.", e);
+        }
+    } else {
+        document.getElementById('five-options').classList.add('hidden');
+        document.getElementById('ox-options').classList.remove('hidden');
+    }
+
+    startTimer();
+}
+
+function startTimer() {
+    clearInterval(timerInterval);
+
+    const maxTime = currentMode === 'FIVE_CHOICE' ? 30 : 15;
+    timeLeft = maxTime;
+
+    const timerBar = document.getElementById('timer-bar');
+    timerBar.style.width = '100%';
+
+    timerInterval = setInterval(() => {
+        timeLeft -= 0.1;
+        timerBar.style.width = (timeLeft / maxTime * 100) + '%';
+
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            processAnswer("시간초과");
+        }
+    }, 100);
+}
+
+function submitAnswer(userChoice) {
+    if(isAnswering) return;
+    isAnswering = true;
+    clearInterval(timerInterval);
+    processAnswer(userChoice);
+}
+
+function processAnswer(userChoice) {
+    const currentQ = questions[currentIndex];
+    currentQ.userChoice = userChoice;
+
+    const scorePerQuestion = questions.length === 5 ? 20 : 10;
+    if (String(userChoice) === String(currentQ.answer)) {
+        score += scorePerQuestion;
+    }
+
+    currentIndex++;
+
+    setTimeout(() => {
+        if (currentIndex >= questions.length) {
+            finishQuizAndLoad();
+        } else {
+            showQuestion();
+        }
+    }, 300);
+}
+
+function finishQuizAndLoad() {
+    saveHistory();
+    document.getElementById('loading-screen').classList.remove('hidden');
+
+    setTimeout(async () => {
+        document.getElementById('loading-screen').classList.add('hidden');
+        renderFinalScreen();
+
+        const today = new Date().toISOString().split('T')[0];
+        const lastSkipDate = localStorage.getItem('last_skipped_date');
+        let todaySkippedCount = parseInt(localStorage.getItem('today_skipped_count') || '0', 10);
+
+        if (lastSkipDate !== today) {
+            todaySkippedCount = 0;
+            localStorage.setItem('last_skipped_date', today);
+        }
+
+        if (todaySkippedCount < 2) {
+            todaySkippedCount++;
+            localStorage.setItem('today_skipped_count', todaySkippedCount);
+            console.log(`[오늘 2판 무료 혜택] 오늘 ${todaySkippedCount}번째 판이므로 전면 광고를 노출하지 않고 통과합니다!`);
+            return;
+        }
+
+        console.log("오늘 무료 혜택(2판)이 끝났으므로 전면 광고 호출을 시도합니다.");
+        if (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.AdMob) {
+            await showInterstitial();
+        } else if (window.AndroidAdInterface) {
+            window.AndroidAdInterface.showFullAd();
+        }
+    }, 1000);
+}
+
+function saveHistory() {
+    let savedData = JSON.parse(localStorage.getItem('pt_quiz_history_v2') || '[]');
+    const now = new Date();
+    const dateStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    savedData.unshift({
+        score: score,
+        date: dateStr,
+        mode: currentMode,
+        quizDetails: questions
+    });
+
+    if(savedData.length > 5) savedData = savedData.slice(0, 5);
+    localStorage.setItem('pt_quiz_history_v2', JSON.stringify(savedData));
+    renderHistory();
+}
+
+
+// ==========================================
+// 🏆 결과 화면 렌더링
+// ==========================================
+function renderFinalScreen() {
+    const titleEl = document.getElementById('final-score-title');
+    const msgEl = document.getElementById('final-pass-msg');
+
+    titleEl.innerText = `${score}점`;
+
+    const isPass = currentMode === 'FIVE_CHOICE' ? score >= 60 : score >= 70;
+
+    if (isPass) {
+        titleEl.style.color = "var(--color-o)";
+        msgEl.innerText = "과락 탈출 성공! 합격권입니다. 🎉";
+        msgEl.style.color = "var(--color-o)";
+    } else {
+        titleEl.style.color = "var(--color-x)";
+        msgEl.innerText = "과락 위기! 오답 노트를 꼭 확인하세요. 😭";
+        msgEl.style.color = "var(--color-x)";
+    }
+
+    const listBox = document.getElementById('final-list-box');
+    let html = '';
+    let bookmarks = JSON.parse(localStorage.getItem('pt_quiz_bookmarks') || '[]');
+    let excludedList = JSON.parse(localStorage.getItem('pt_quiz_excluded') || '[]');
+
+    questions.forEach((q, i) => {
+        const isCorrect = String(q.userChoice) === String(q.answer);
+        const statusClass = isCorrect ? 'correct' : 'wrong';
+        const statusText = isCorrect ? '정답 🎉' : '틀림 ❌';
+        
+        const isBookmarked = bookmarks.some(b => b.question === q.question);
+        const bmBtnClass = isBookmarked ? 'bookmark-toggle-btn active' : 'bookmark-toggle-btn';
+        const bmBtnText = isBookmarked ? '🌟 해제' : '⭐ 즐겨찾기';
+
+        const isExcluded = excludedList.some(ex => ex.question === q.question);
+        const exBtnClass = isExcluded ? 'bookmark-toggle-btn active' : 'bookmark-toggle-btn';
+        const exBtnText = isExcluded ? '✅ 제외됨' : '🚫퀴즈 제외하기';
+
+        const keywordTagHtml = renderKeywordTag(q.keywords);
+        const optionsHtml = renderOptionsText(q);
+
+        html += `
+            <div class="review-card ${statusClass}">
+                <div class="review-meta" style="flex-wrap: wrap; gap: 6px;">
+                    <div>
+                        <span style="color:var(--primary-color)">Q${i+1}.</span>
+                        <span style="color:${isCorrect ? 'var(--color-o)' : 'var(--color-x)'}">${statusText}</span>
+                    </div>
+                    <div style="display: flex; gap: 4px;">
+                        <button id="final-bm-btn-${i}" class="${bmBtnClass}" onclick="toggleBookmarkInFinal(${i})">${bmBtnText}</button>
+                        <button id="final-ex-btn-${i}" class="${exBtnClass}" style="${isExcluded ? 'background:#ef4444; color:#fff;' : ''}" onclick="toggleExcludedInFinal(${i})">${exBtnText}</button>
+                    </div>
+                </div>
+                <div class="review-q-text">${q.question}</div>
+                ${optionsHtml}
+                <div class="review-ans-info">내 선택: ${q.userChoice} | 정답: ${q.answer}</div>
+                <div class="review-exp-box">
+                    ${keywordTagHtml}
+                    <div><strong>해설:</strong> ${q.explanation || ''}</div>
+                </div>
+            </div>`;
+    });
+
+    listBox.innerHTML = html;
+    document.getElementById('final-screen').classList.remove('hidden');
+}
+
+function toggleBookmarkInFinal(qIndex) {
+    const targetQ = questions[qIndex];
+    let bookmarks = JSON.parse(localStorage.getItem('pt_quiz_bookmarks') || '[]');
+    const btn = document.getElementById(`final-bm-btn-${qIndex}`);
+
+    const existingIndex = bookmarks.findIndex(b => b.question === targetQ.question);
+
+    if (existingIndex > -1) {
+        bookmarks.splice(existingIndex, 1);
+        btn.classList.remove('active');
+        btn.innerHTML = '⭐ 즐겨찾기';
+    } else {
+        bookmarks.push(targetQ);
+        btn.classList.add('active');
+        btn.innerHTML = '🌟 해제';
+    }
+
+    localStorage.setItem('pt_quiz_bookmarks', JSON.stringify(bookmarks));
+}
+
+function toggleExcludedInFinal(qIndex) {
+    const targetQ = questions[qIndex];
+    let excludedList = JSON.parse(localStorage.getItem('pt_quiz_excluded') || '[]');
+    const btn = document.getElementById(`final-ex-btn-${qIndex}`);
+
+    const existingIndex = excludedList.findIndex(ex => ex.question === targetQ.question);
+
+    if (existingIndex > -1) {
+        excludedList.splice(existingIndex, 1);
+        btn.style.background = '';
+        btn.style.color = '';
+        btn.innerHTML = '🚫 퀴즈 제외하기';
+    } else {
+        excludedList.push(targetQ);
+        btn.style.background = '#ef4444';
+        btn.style.color = '#ffffff';
+        btn.innerHTML = '✅ 제외됨';
+    }
+
+    localStorage.setItem('pt_quiz_excluded', JSON.stringify(excludedList));
+}
+
+function shareApp() {
+    const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.imdoctor.ptox";
+    const modeTitle = questions.length === 5 ? '5지선다 모의고사' : 'O/X 퀴즈';
+    const shareText = `[물리치료사 국시 과락방지 앱]\n나 방금 ${modeTitle} 풀고 ${score}점 맞음! 🩺\n매일 5분 투자하고 같이 과락 탈출하자! 🚀\n\n📌 앱 다운로드하기: ${PLAY_STORE_URL}`;
+
+    if (navigator.share) {
+        navigator.share({ title: '국시 과락방지', text: shareText, url: PLAY_STORE_URL })
+        .catch((error) => console.log('공유 실패:', error));
+    } else {
+        navigator.clipboard.writeText(shareText).then(() => {
+            alert("공유 링크가 복사되었습니다! 🎉");
+        });
+    }
+}
+
+
+// ==========================================
+// 📚 개념서 사이드바 및 상세 독서 화면
+// ==========================================
+function openConceptsDrawer() {
+    document.getElementById('concepts-drawer').classList.add('open');
+    document.getElementById('concepts-drawer-dim').classList.add('show');
+}
+
+function closeConceptsDrawer() {
+    document.getElementById('concepts-drawer').classList.remove('open');
+    document.getElementById('concepts-drawer-dim').classList.remove('show');
+}
+
+function toggleAccordion(button) {
+    const item = button.parentElement;
+    item.classList.toggle('active');
+}
+
+async function openConceptDetail(subjectName, chapterName) {
+    closeConceptsDrawer();
+
+    document.getElementById('concept-subject-title').innerText = subjectName;
+    document.getElementById('concept-chapter-title').innerText = chapterName;
+    
+    const contentBody = document.getElementById('concept-content-body');
+    contentBody.innerHTML = '<div style="text-align: center; padding: 40px; color: #94a3b8;">개념을 불러오는 중입니다...</div>';
+    document.getElementById('concept-view').classList.remove('hidden');
+
+    try {
+        const { data, error } = await mySupabaseClient
+            .from('concepts')
+            .select('title, content, importance')
+            .eq('chapter_name', chapterName)
+            .not('content', 'is', null)
+            .order('sort_order', { ascending: true });
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            contentBody.innerHTML = '<div style="text-align: center; padding: 40px; color: #94a3b8;">등록된 개념 내용이 없습니다. 곧 업데이트됩니다! 📝</div>';
+            return;
+        }
+
+        let htmlBuffer = '';
+        data.forEach(item => {
+            let formattedContent = item.content
+                .replace(/### (.*)/g, '<h3>$1</h3>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>');
+
+            htmlBuffer += `
+                <div class="concept-card">
+                    ${item.title ? `<div style="font-size: 16px; font-weight: 800; color: #2563eb; margin-bottom: 8px;">${item.title}</div>` : ''}
+                    <div>${formattedContent}</div>
+                </div>
+            `;
+        });
+
+        contentBody.innerHTML = htmlBuffer;
+
+    } catch (err) {
+        console.error('개념 로드 실패:', err);
+        contentBody.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">데이터를 불러오는 중 오류가 발생했습니다.</div>';
+    }
+}
+
+function closeConceptDetail() {
+    document.getElementById('concept-view').classList.add('hidden');
+}
+</script>
+</body>
+</html>
